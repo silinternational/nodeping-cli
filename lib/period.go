@@ -4,14 +4,52 @@ import (
 	"time"
 )
 
-// Period - Hold from and to timestamps for a given period
+
+const periodThisMonth =  "ThisMonth"
+const periodLastMonth =  "LastMonth"
+const periodThisYear =  "ThisYear"
+const periodLastYear =  "LastYear"
+
+func GetValidPeriods() []string{
+	return []string{
+		periodThisMonth,
+		periodLastMonth,
+		periodThisYear,
+		periodLastYear,
+	}
+}
+
+func IsPeriodValid(pType string) bool {
+	for _, validPeriod:= range GetValidPeriods() {
+		if pType == validPeriod {
+			return true
+		}
+	}
+
+	return false
+}
+
+// Period - Hold From and To timestamps for a given period
 type Period struct {
-	from int
-	to   int
+	From int64
+	To   int64
 }
 
 func (p *Period) String() (string, string) {
-	return time.Unix(int64(p.from), 0).UTC().String(), time.Unix(int64(p.to), 0).UTC().String()
+	return time.Unix(int64(p.From), 0).UTC().String(), time.Unix(int64(p.To), 0).UTC().String()
+}
+
+// GetLastMonthPeriod - Get Period for "ThisMonth"
+func GetThisMonthPeriod(now time.Time) Period {
+	fromTime := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	toTime := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, time.UTC)
+
+	// fmt.Printf("From: %s, To: %s\n", fromTime.String(), toTime.String())
+
+	return Period{
+		From: int64(fromTime.Unix()),
+		To:   int64(toTime.Unix()),
+	}
 }
 
 // GetLastMonthPeriod - Get Period for "LastMonth"
@@ -28,8 +66,8 @@ func GetLastMonthPeriod(now time.Time) Period {
 	// fmt.Printf("From: %s, To: %s\n", fromTime.String(), toTime.String())
 
 	return Period{
-		from: int(fromTime.Unix()),
-		to:   int(toTime.Unix()),
+		From: int64(fromTime.Unix()),
+		To:   int64(toTime.Unix()),
 	}
 }
 
@@ -40,8 +78,8 @@ func GetTodayPeriod(now time.Time) Period {
 	toTime := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, time.UTC)
 
 	return Period{
-		from: int(fromTime.Unix()),
-		to:   int(toTime.Unix()),
+		From: int64(fromTime.Unix()),
+		To:   int64(toTime.Unix()),
 	}
 }
 
@@ -52,8 +90,8 @@ func GetThisYearPeriod(now time.Time) Period {
 	toTime := time.Date(now.Year(), 12, 31, 23, 59, 59, 0, time.UTC)
 
 	return Period{
-		from: int(fromTime.Unix()),
-		to:   int(toTime.Unix()),
+		From: int64(fromTime.Unix()),
+		To:   int64(toTime.Unix()),
 	}
 }
 
@@ -64,8 +102,8 @@ func GetLastYearPeriod(now time.Time) Period {
 	toTime := time.Date(now.Year()-1, 12, 31, 23, 59, 59, 0, time.UTC)
 
 	return Period{
-		from: int(fromTime.Unix()),
-		to:   int(toTime.Unix()),
+		From: int64(fromTime.Unix()),
+		To:   int64(toTime.Unix()),
 	}
 }
 
@@ -78,14 +116,14 @@ func GetPeriodByName(name string, now int64) Period {
 	date := time.Unix(now, 0)
 
 	switch name {
-	case "LastMonth":
+	case periodThisMonth:
+		return GetThisMonthPeriod(date)
+	case periodLastMonth:
 		return GetLastMonthPeriod(date)
-	case "ThisYear":
+	case periodThisYear:
 		return GetThisYearPeriod(date)
-	case "LastYear":
+	case periodLastYear:
 		return GetLastYearPeriod(date)
-	case "Today":
-		return GetTodayPeriod(date)
 	default:
 		return GetTodayPeriod(date)
 	}
