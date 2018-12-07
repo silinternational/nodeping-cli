@@ -37,6 +37,8 @@ var uptimeCmd = &cobra.Command{
 }
 
 func init() {
+	periods := lib.GetValidPeriods()
+
 	rootCmd.AddCommand(uptimeCmd)
 	uptimeCmd.Flags().StringVarP(
 		&contactGroupName,
@@ -50,7 +52,7 @@ func init() {
 		"period",
 		"p",
 		"",
-		`Name of the time period to get uptime values for (e.g. LastMonth).`,
+		fmt.Sprintf(`Name of the time period to get uptime values for ... %v`, periods),
 	)
 }
 
