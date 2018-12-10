@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"github.com/silinternational/nodeping-cli/lib"
-	"sort"
 	"time"
 )
 
@@ -20,7 +19,7 @@ var uptimeCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		if contactGroupName == "" {
-			fmt.Println("Error: The 'contact-group' flag is required (e.g. -g AppsDev).\n")
+			fmt.Println("Error: The 'contact-group' flag is required (e.g. -g AppsDev).")
 			os.Exit(1)
 		}
 
@@ -64,59 +63,20 @@ func runUptime() {
 		os.Exit(1)
 	}
 
-	contactGroups, err := npClient.ListContactGroups()
+	cgID, err := lib.GetContactGroupIDFromName(contactGroupName, npClient)
 
 	if err != nil {
-		fmt.Printf("Error retrieving contact groups: \n%s\n", err.Error())
+		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 
-	cgID := ""
-	for cgKey, cg := range contactGroups{
-		if cg.Name == contactGroupName {
-			cgID = cgKey
-			break
-		}
-	}
-
-	if cgID == "" {
-		fmt.Printf("Could not find contact group with name \"%s\"\n", contactGroupName)
-		os.Exit(1)
-	}
-
-	fmt.Printf("Found contact group \"%s\" having ID \"%s\".\n", contactGroupName, cgID)
-
-	checks, err := npClient.ListChecks()
+	checkLabels, checkIDs, err := lib.GetCheckIDsAndLabels(cgID, npClient)
 
 	if err != nil {
-		fmt.Printf("Error retrieving checks: \n%s\n", err.Error())
+		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 
-	//fmt.Printf("First Check:\n%+v\n", checks[0])
-
-	checkIDs := map[string]string{}
-	checkLabels := []string{}
-
-	for _, check := range checks {
-		// Notifications is a list of maps with the contactGroup ID as keys
-		for _, notfctn := range check.Notifications {
-			foundOne := false
-			for nKey := range notfctn {
-				if nKey == cgID {
-					checkIDs[check.Label] = check.ID
-					checkLabels = append(checkLabels, check.Label)
-					foundOne = true
-					break
-				}
-			}
-			if foundOne {
-				break
-			}
-		}
-	}
-
-	uptimes := map[string]float32{}
 	start := int64(0)
 	end := int64(0)
 
@@ -134,18 +94,10 @@ func runUptime() {
 		time.Unix(end/1000, 0).UTC(),
 	)
 
-	for _, checkID := range checkIDs {
-		nextUptime, err := npClient.GetUptime(checkID, start, end)
-		if err != nil {
-			fmt.Printf("Error getting uptime for check ID %s.\n%s\n", checkID, err.Error())
-			continue
-		}
-		uptimes[checkID] = nextUptime["total"].Uptime
-		//fmt.Printf("Got Uptime Response ...\n   %+v\n", nextUptime)
-	}
+	uptimes := lib.GetUptimes(checkIDs, start, end, npClient)
 
-	sort.Strings(checkLabels)
 	for _, label := range checkLabels {
 		fmt.Printf("%s, %v\n", label, uptimes[checkIDs[label]])
 	}
 }
+
