@@ -7,6 +7,13 @@ import (
 	"sort"
 )
 
+type UptimeResults struct {
+	CheckLabels []string
+	Uptimes map[string]float32
+	StartTime int64
+	EndTime int64
+}
+
 func GetContactGroupIDFromName(contactGroupName string, npClient *nodeping.NodePingClient) (string, error) {
 
 	contactGroups, err := npClient.ListContactGroups()
@@ -74,7 +81,7 @@ func GetCheckIDsAndLabels(
 	return checkLabels, checkIDs, nil
 }
 
-func GetUptimes(
+func GetUptimesForChecks(
 	checkIDs map[string]string,
 	start, end int64,
 	npClient *nodeping.NodePingClient,
@@ -93,4 +100,54 @@ func GetUptimes(
 	}
 
 	return uptimes
+}
+
+
+func GetUptimesForContactGroup(
+	nodepingToken, contactGroupName, period string,
+) (UptimeResults, error) {
+	npClient, err := nodeping.New(nodeping.ClientConfig{Token: nodepingToken})
+	emptyResults := UptimeResults{}
+
+	if err != nil {
+		err = fmt.Errorf("Error initializing cli: %s", err.Error())
+		return emptyResults, err
+	}
+
+	cgID, err := GetContactGroupIDFromName(contactGroupName, npClient)
+
+	if err != nil {
+		return emptyResults, err
+	}
+
+	checkLabels, checkIDs, err := GetCheckIDsAndLabels(cgID, npClient)
+
+	if err != nil {
+		return emptyResults, err
+	}
+
+	start := int64(0)
+	end := int64(0)
+
+	if period != "" {
+		periodObject := GetPeriodByName(period, 0)
+		start = periodObject.From * 1000
+		end = periodObject.To * 1000
+	}
+
+	uptimes := GetUptimesForChecks(checkIDs, start, end, npClient)
+	uptimesByLabel := map[string]float32{}
+
+	for _, label := range checkLabels {
+		uptimesByLabel[label] = uptimes[checkIDs[label]]
+	}
+
+	results := UptimeResults{
+		CheckLabels: checkLabels,
+		Uptimes: uptimesByLabel,
+		StartTime: start/1000,
+		EndTime: end/1000,
+	}
+
+	return results, nil
 }

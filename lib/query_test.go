@@ -108,7 +108,7 @@ func TestGetCheckIDsAndLabels(t *testing.T) {
 	}
 }
 
-func TestGetUptimes(t *testing.T) {
+func TestGetUptimesForChecks(t *testing.T) {
 
 	npClient, _ := nodeping.New(nodeping.ClientConfig{Token: "TestToken"})
 
@@ -124,7 +124,7 @@ func TestGetUptimes(t *testing.T) {
 		"check1": "c1ID",
 		"check2": "c2ID",
 	}
-	uptimes := GetUptimes(checkIDs, 0, 0, npClient)
+	uptimes := GetUptimesForChecks(checkIDs, 0, 0, npClient)
 	expected := map[string]float32{
 		"c1ID": 99.011,
 		"c2ID": 99.011,

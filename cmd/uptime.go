@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/silinternational/nodeping-go-client"
 	"fmt"
 	"os"
 	"github.com/silinternational/nodeping-cli/lib"
@@ -56,48 +55,24 @@ func init() {
 }
 
 func runUptime() {
-	npClient, err := nodeping.New(nodeping.ClientConfig{Token: nodepingToken})
-
-	if err != nil {
-		fmt.Printf("Error initializing cli: \n%s\n", err.Error())
-		os.Exit(1)
-	}
-
-	cgID, err := lib.GetContactGroupIDFromName(contactGroupName, npClient)
+	results, err := lib.GetUptimesForContactGroup(nodepingToken, contactGroupName, period)
 
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
-	}
-
-	checkLabels, checkIDs, err := lib.GetCheckIDsAndLabels(cgID, npClient)
-
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
-
-	start := int64(0)
-	end := int64(0)
-
-	if period != "" {
-		periodObject := lib.GetPeriodByName(period, 0)
-		start = periodObject.From * 1000
-		end = periodObject.To * 1000
 	}
 
 	fmt.Printf(
-		"Period: %s. From: %v      To: %v\n\n",
+		"\nPeriod: %s. From: %v      To: %v\n\n",
 		period,
 		//time.Unix(start/1000, 0).Format(time.RFC822Z),
-		time.Unix(start/1000, 0).UTC(),
-		time.Unix(end/1000, 0).UTC(),
+		time.Unix(results.StartTime, 0).UTC(),
+		time.Unix(results.EndTime, 0).UTC(),
 	)
 
-	uptimes := lib.GetUptimes(checkIDs, start, end, npClient)
 
-	for _, label := range checkLabels {
-		fmt.Printf("%s, %v\n", label, uptimes[checkIDs[label]])
+	for _, label := range results.CheckLabels {
+		fmt.Printf("%s, %v\n", label, results.Uptimes[label])
 	}
 }
 
